@@ -9,8 +9,6 @@ jobs:
       - image: goldenratioboy/flask-api-container
     steps:
       - checkout
-      - setup_remote_docker:
-          docker_layer_caching: true
       - run:
           name: Build and Push Docker image
           command:
