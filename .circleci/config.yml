@@ -4,6 +4,9 @@ orbs:
   python: circleci/python@0.2.1
 
 jobs:
+  build:
+    docker:
+      - image: goldenratioboy/flask-api-container
   build-and-test:
     executor: python/default
     steps:
@@ -11,9 +14,6 @@ jobs:
       - python/load-cache
       - python/install-deps
       - python/save-cache
-      - run:
-          command: ./manage.py test
-          name: Test
 
 workflows:
   main:
