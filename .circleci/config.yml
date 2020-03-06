@@ -11,12 +11,7 @@ jobs:
       - checkout
       - run:
           name: Build and Push Docker image
-          command:
+          command: |
             docker build -t goldenratioboy/$IMAGE_NAME .
             echo $DOCKER_PWD | docker login -u $DOCKER_LOGIN --password-stdin
             docker push goldenratioboy/$IMAGE_NAME
-
-workflows:
-  main:
-    jobs:
-      - build
