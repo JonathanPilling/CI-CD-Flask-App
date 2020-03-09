@@ -20,7 +20,7 @@ jobs:
           name: Setup Heroku
           command: |
             chmod =x .circleci/heroku-setup.sh
-            .circleci/setup-heroku.sh
+            .circleci/heroku-setup.sh
       - run:
           name: Deploy to Heroku
           command: |
