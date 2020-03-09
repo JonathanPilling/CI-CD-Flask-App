@@ -9,3 +9,18 @@ jobs:
       - image: goldenratioboy/flask-api-container
     steps:
       - checkout
+      - run: 
+          name: Build Image & push
+          command: |
+            docker login -username=$DOCKER_LOGIN --password=$DOCKER_PWD
+            docker tag flask-api registry.heroku.com/$HEROKU_APP_NAME/web
+            docker push registry.heroku.com/$HEROKU_APP_NAME/web
+      - run: 
+          name: Setup Heroku
+          command: |
+            chmod =x .circleci/heroku-setup.sh
+            .circleci/setup-heroku.sh
+      - run:
+          name: Deploy to Heroku
+          command: |
+            heroku container:release web --a $HEROKU_APP_NAME
