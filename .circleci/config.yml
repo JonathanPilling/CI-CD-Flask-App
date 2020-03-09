@@ -10,6 +10,11 @@ jobs:
     steps:
       - checkout
       # Startup Docker
+      - run:
+          command: |
+            docker info
+            docker build -t flask-info .
+      #Deploy Docker image
       - run: 
           command: |
             echo "$DOCKER_PWD" | docker login --username $DOCKER_LOGIN --password-stdin
