@@ -1,16 +1,11 @@
 version: 2.1
 
-orbs:
-  python: circleci/python@0.2.1
-
 jobs:
   build:
-    docker:
-      - image: goldenratioboy/flask-api-container
+    machine: true
     steps:
       - checkout
       # Startup Docker
-      - setup_remote_docker
       - run:
           command: |
             docker info
