@@ -24,7 +24,10 @@ def predict():
         cursor = conn.cursor()
 
         query = "select Age from passengers where Name = 'Jonathan"
-        data['Age'] = query
+        cursor.execute(query)
+        record = cursor.fetchall()
+
+        data['Age'] = record
 
         # convert data into dataframe
         data.update((x, [y]) for x, y in data.items()) # Square brackets are needed for scalar values, because dictionaries don't have implicit ordering
