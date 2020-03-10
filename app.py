@@ -2,6 +2,7 @@ import pandas as pd
 from flask import Flask, jsonify, request
 import pickle
 import os
+import psycopg2
 
 # load model
 model = pickle.load(open('model.pkl','rb'))
@@ -15,6 +16,15 @@ def predict():
     if request.method == "POST":
         # get data
         data = request.get_json(force=True)
+
+        # Add db data before converting to df
+        DATABASE_URL = os.environ['DATABASE_URL']
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+
+        cursor = conn.cursor()
+
+        query = "select Age from passengers where Name = 'Jonathan"
+        data['Age'] = query
 
         # convert data into dataframe
         data.update((x, [y]) for x, y in data.items()) # Square brackets are needed for scalar values, because dictionaries don't have implicit ordering
