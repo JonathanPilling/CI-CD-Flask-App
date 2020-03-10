@@ -5,6 +5,12 @@ jobs:
     machine: true
     steps:
       - checkout
+
+      # Run test script before building docker image
+      - run:
+          command: |
+            python app_test.py
+
       # Startup Docker
       - run:
           command: |
