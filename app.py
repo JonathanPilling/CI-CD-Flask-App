@@ -17,18 +17,6 @@ def predict():
         # get data
         data = request.get_json(force=True)
 
-        # # Add db data before converting to df
-        # DATABASE_URL = os.environ['DATABASE_URL']
-        # conn = psycopg2.connect(DATABASE_URL, sslmode='require')
-
-        # cursor = conn.cursor()
-
-        # query = "select Age from passengers where Name = 'Jonathan'"
-        # cursor.execute(query)
-        # record = cursor.fetchall()
-
-        # data['Age'] = record
-
         # convert data into dataframe
         data.update((x, [y]) for x, y in data.items()) # Square brackets are needed for scalar values, because dictionaries don't have implicit ordering
         data_df = pd.DataFrame.from_dict(data)
