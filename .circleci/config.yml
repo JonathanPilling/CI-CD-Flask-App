@@ -10,10 +10,6 @@ jobs:
           command: |
             docker info
             docker build -t flask-api .
-      # test containerized application
-      - run:
-          command: |
-            python app_test.py
       #Deploy Docker image
       - run: 
           command: |
