@@ -2,13 +2,13 @@ version: 2.1
 
 jobs:
   build:
-    working_directory: ~/app
     machine: true
     steps:
       - checkout
       # Startup Docker
       - run:
           command: |
+            cd app
             docker info
             docker build -t flask-api .
       #Deploy Docker image
