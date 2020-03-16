@@ -5,11 +5,6 @@ jobs:
     machine: true
     steps:
       - checkout
-      # Startup Docker
-      - persist_to_workspace:
-          root: ~/app
-          paths:
-            - null
       - run:
           command: |
             docker info
