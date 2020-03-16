@@ -7,6 +7,7 @@ jobs:
       - checkout
       - run:
           command: |
+            cd app/
             docker info
             docker build -t flask-api .
       #Deploy Docker image
