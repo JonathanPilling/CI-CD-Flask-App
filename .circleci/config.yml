@@ -16,11 +16,6 @@ jobs:
             docker login --username=$DOCKER_LOGIN --password=$HEROKU_API_KEY registry.heroku.com
             docker tag flask-api registry.heroku.com/$HEROKU_APP_NAME/web
             docker push registry.heroku.com/$HEROKU_APP_NAME/web
-      - run:
-          name: Test docker image before deploying
-          command: |
-            cd ../test
-
       - run: 
           name: Setup Heroku
           command: |
