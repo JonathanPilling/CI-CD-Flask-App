@@ -5,7 +5,7 @@ import json
 class TestPredict(unittest.TestCase):
     
     def setUp(self):
-        self.app = app.app.test_client()
+        self.app = app.test_client()
         self.app.testing = True
 
     # Checks response code for GET request #
@@ -15,7 +15,7 @@ class TestPredict(unittest.TestCase):
 
     # Checks response code for sample POST request #
     def test_post_code(self):
-        info = {'Pclass':3, 'Age':2, 'SibSp': 1, 'Fare':50}
+        info = {'Age': 20}
         response = self.app.post(
             '/',
             data = json.dumps(info),

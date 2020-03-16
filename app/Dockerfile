@@ -10,6 +10,9 @@ ADD . /app
 # execute everyone's favorite pip command, pip install -r
 RUN pip install --trusted-host pypi.python.org -r requirements.txt
 
+COPY ./models ./models
+COPY ./test ./test
+
 # unblock port 5001 for the Flask app to run on
 EXPOSE 5001
 

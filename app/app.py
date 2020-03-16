@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 from flask import Flask, jsonify, request
 import pickle
 import os
@@ -68,11 +69,11 @@ def predict():
         collections_data = OrderedDict()
         conversion_data = OrderedDict()
 
-        # Initialize preserved ordering with zeros
+        # Initialize preserved feature ordering
         for entry in inputs_conversion:
-            conversion_data[entry] = 0
+            conversion_data[entry] = np.nan
         for entry in inputs_collections:
-            collections_data[entry] = 0
+            collections_data[entry] = np.nan
 
         # Split data into conversion/collections model,
         # Note that some keys are in both ml models
@@ -81,8 +82,7 @@ def predict():
                 conversion_data[key] = val
             if key in collections_data:
                 collections_data[key] = val
-
-        
+   
         # convert data into dataframe
         collections_data.update((x, [y]) for x, y in collections_data.items())
         conversion_data.update((x, [y]) for x, y in conversion_data.items()) 
@@ -94,13 +94,11 @@ def predict():
         conversion_result = conversion_model.predict_proba(conversion_data_df)[0,1]
         final_prediction = collections_result * conversion_result
 
-        print(collections_result, conversion_result, final_prediction)
-
         # send back to browser
         output = {'collections_result': collections_result.item(), 'conversion_result': conversion_result.item(), 'final_prediction': final_prediction.item()}
 
         # return data
-        return jsonify(results=output)
+        return jsonify(output)
     else: # request == GET
         return ("<h1>Hi! I'm the Progrexion API</h1>")
 
