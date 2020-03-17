@@ -8,7 +8,7 @@ from collections import OrderedDict
 
 # load model
 # model = pickle.load(open('model.pkl','rb'))
-collections_model = pickle.load(open('models/p60_nopaid_random_0211.sav', 'rb'))
+collections_model = pickle.load(open('models/p60_nopaid_random_0211.sav', 'rb')) 
 conversion_model = pickle.load(open('models/conversion_random_122919.sav', 'rb'))
 
 ## Input Lists

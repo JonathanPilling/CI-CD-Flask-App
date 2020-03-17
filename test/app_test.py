@@ -1,11 +1,14 @@
-import app
 import unittest
 import json
+import sys
+
+sys.path.insert(0, './app')
+import app
 
 class TestPredict(unittest.TestCase):
     
     def setUp(self):
-        self.app = app.test_client()
+        self.app = app.app.test_client()
         self.app.testing = True
 
     # Checks response code for GET request #
