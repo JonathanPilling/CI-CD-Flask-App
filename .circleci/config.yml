@@ -6,7 +6,7 @@ jobs:
     steps:
       - checkout
       - persist_to_workspace:
-          root: ~/repo
+          root: ~/CI-CD-Flask-App
           paths:
             - app
       - run:
@@ -20,7 +20,7 @@ jobs:
       HEROKU_APP_NAME: martech-test
     steps:
       - attach_workspace:
-          at: /repo/app
+          at: /CI-CD-Flask-App/app
       - run: 
           name: Push Docker image to Heroku registry
           command: |
@@ -43,7 +43,7 @@ jobs:
       HEROKU_APP_NAME: martech-test-dev
     steps:
       - attach_workspace:
-            at: /repo/app
+            at: /CI-CD-Flask-App/app
       - run: 
           name: Push Docker image to Heroku registry
           command: |
