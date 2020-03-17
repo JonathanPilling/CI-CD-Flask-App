@@ -6,9 +6,9 @@ jobs:
     steps:
       - checkout
       - persist_to_workspace:
-          root: ~/CI-CD-Flask-App
+          root: /home/circleci/app
           paths:
-            - app
+            - .
       - run:
           command: |
             cd app/
