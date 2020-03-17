@@ -9,6 +9,7 @@ jobs:
       - run: 
           name: deploy to martech-test
           command: |
+            docker info
             docker build -t flask-api .
             docker login --username=$DOCKER_LOGIN --password=$HEROKU_API_KEY registry.heroku.com
             docker tag flask-api registry.heroku.com/$HEROKU_APP_NAME/web
@@ -25,6 +26,7 @@ jobs:
       - run: 
           name: deploy to martech-test-dev
           command: |
+            docker info
             docker build -t flask-api .
             docker login --username=$DOCKER_LOGIN --password=$HEROKU_API_KEY registry.heroku.com
             docker tag flask-api registry.heroku.com/$HEROKU_APP_NAME/web
