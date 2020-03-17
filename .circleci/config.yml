@@ -16,12 +16,54 @@ jobs:
             docker login --username=$DOCKER_LOGIN --password=$HEROKU_API_KEY registry.heroku.com
             docker tag flask-api registry.heroku.com/$HEROKU_APP_NAME/web
             docker push registry.heroku.com/$HEROKU_APP_NAME/web
+
+  deploy_prod:
+    machine: true
+    environment:
+      HEROKU_APP_NAME: martech-test
+    steps:
       - run: 
           name: Setup Heroku
           command: |
             chmod +x .circleci/heroku-setup.sh
-            .circleci/heroku-setup.sh
+            .circleci/heroku-setup.sh          
       - run:
           name: Deploy to Heroku
           command: |
             heroku container:release web -a $HEROKU_APP_NAME
+
+  deploy_dev:
+    machine: true
+    environment:
+      HEROKU_APP_NAME: martech-test-dev
+    steps:
+      - run: 
+          name: Setup Heroku
+          command: |
+            chmod +x .circleci/heroku-setup.sh
+            .circleci/heroku-setup.sh          
+      - run:
+          name: Deploy to Heroku
+          command: |
+            heroku container:release web -a $HEROKU_APP_NAME
+
+workflows:
+  version: 2.1
+  build_and_deploy:
+    jobs:
+      - build
+      - deploy_prod:
+          requires:
+            - build
+          filters:
+            branches:
+              only: 
+                - master
+      - deploy_dev:
+          requires:
+            - build
+          filters:
+            branches:
+              only: 
+                - dev
+  
