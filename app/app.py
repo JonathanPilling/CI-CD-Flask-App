@@ -100,7 +100,7 @@ def predict():
         # return data
         return jsonify(output)
     else: # request == GET
-        return ("<h1>Hi! I'm the Progrexion API</h1>")
+        return ("<h1>Hi! I'm the Progrexion API (DEV Edition)</h1>")
 
 if __name__ == '__main__':
     # Bind to the port if defined, otherwise default to 5001
