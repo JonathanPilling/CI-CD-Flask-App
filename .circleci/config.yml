@@ -5,10 +5,13 @@ jobs:
     machine: true
     steps:
       - checkout
+      - persist_to_workspace:
+          root: ~/repo
+          paths:
+            - app
       - run:
           command: |
             cd app/
-            docker info
             docker build -t flask-api .
 
   deploy_prod:
@@ -16,6 +19,8 @@ jobs:
     environment:
       HEROKU_APP_NAME: martech-test
     steps:
+      - attach_workspace:
+          at: /repo/app
       - run: 
           name: Push Docker image to Heroku registry
           command: |
@@ -37,6 +42,8 @@ jobs:
     environment:
       HEROKU_APP_NAME: martech-test-dev
     steps:
+      - attach_workspace:
+            at: /repo/app
       - run: 
           name: Push Docker image to Heroku registry
           command: |
