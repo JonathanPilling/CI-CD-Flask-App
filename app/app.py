@@ -6,6 +6,11 @@ import os
 import xgboost as xgb
 from collections import OrderedDict
 
+# DB Imports
+import psycopg2
+import redis
+import json
+
 # load model
 # model = pickle.load(open('model.pkl','rb'))
 collections_model = pickle.load(open('models/p60_nopaid_random_0211.sav', 'rb')) 
@@ -55,6 +60,61 @@ inputs_collections = [
     'previous_paid'
     ]
 
+# Initialize redis cache
+r = redis.Redis(host='localhost', port=6379, db=0)
+
+# Helper method to convert T to 1 and other vals to 0
+def trueFalseToInt(val):
+    if val == 'True':
+        return 1
+    else:
+        return 0
+
+# Helper method for reading from local db
+def read_local_db(agent_id):
+    # if query fails we'll return agent_data with all NAN values
+    agent_data = {"AgentType_Outsourcing Training": np.nan, "AgentTenure": np.nan, 
+    "AgentType_PGX Inbound": np.nan, "AgentType_PGX Intro Hot Swap": np.nan, "AgentType_PGX Hourly": np.nan}
+    try:
+        connection = psycopg2.connect(user = "184973",
+                                    password = "Goldenratio66",
+                                    host = "127.0.0.1",
+                                    port = "5432",
+                                    database = "postgres")
+
+        cursor = connection.cursor()
+        # Print PostgreSQL Connection properties
+        print ( connection.get_dsn_parameters(),"\n")
+
+        # Print PostgreSQL version
+        cursor.execute("SELECT version();")
+        record = cursor.fetchone()
+        print("You are connected to - ", record,"\n")
+
+        # execute query
+        test_query = '''select agenttype_outsourcing_training, agenttenure, agenttype_pgx_inbound, agenttype_pgx_intro_hot_swap,
+        agenttype_pgx_hourly from agent_info where agent_id = %s'''
+        cursor.execute(test_query, (agent_id,))
+        agent_records = cursor.fetchall()
+
+        # Build agent_data to return
+        agent_data['AgentType_Outsourcing Training'] = trueFalseToInt(agent_records[0][0])
+        agent_data['AgentTenure'] = agent_records[0][1]
+        agent_data['AgentType_PGX Inbound'] = trueFalseToInt(agent_records[0][2])
+        agent_data['AgentType_PGX Intro Hot Swap'] = trueFalseToInt(agent_records[0][3])
+        agent_data['AgentType_PGX Hourly'] = agent_records[0][4]
+
+    except (Exception, psycopg2.Error) as error :
+        print ("Error while connecting to PostgreSQL", error)
+    finally:
+        #closing database connection.
+        if(connection):
+            cursor.close()
+            connection.close()
+            print("PostgreSQL connection is closed")
+
+        return agent_data
+
 # app
 app = Flask(__name__)
 
@@ -64,6 +124,22 @@ def predict():
     if request.method == "POST":
         # get data
         data = request.get_json(force=True)
+
+        # if data contains agentID, query agent info from db/cache & append to data
+        if 'agent_id' in data.keys():
+            idNum = data['agent_id']
+            if r.exists(idNum):
+                rdata = r.get(idNum)
+                agent_data = json.loads(rdata)
+                data.update(agent_data)
+                print('Using cached value')
+            else:
+                queried_agent_data = read_local_db(idNum)              
+                data.update(queried_agent_data)
+
+                # Serialize to store in redis cache
+                rval = json.dumps(queried_agent_data)
+                r.set(idNum, rval)
 
         # Preserve ordering for pandas df
         collections_data = OrderedDict()
@@ -94,6 +170,8 @@ def predict():
         conversion_result = conversion_model.predict_proba(conversion_data_df)[0,1]
         final_prediction = collections_result * conversion_result
 
+        # Before sending output back, do an sql transaction to audit database
+
         # send back to browser
         output = {'collections_result': collections_result.item(), 'conversion_result': conversion_result.item(), 'final_prediction': final_prediction.item()}
 
@@ -103,6 +181,7 @@ def predict():
         return ("<h1>Hi! I'm the Progrexion API (DEV Edition)</h1>")
 
 if __name__ == '__main__':
+
     # Bind to the port if defined, otherwise default to 5001
     port = int(os.environ.get('PORT', 5000))
     app.run("0.0.0.0", port = port, debug=True)
