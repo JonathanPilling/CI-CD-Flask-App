@@ -16,8 +16,8 @@ COPY ./test /test
 # unblock port 5001 for the Flask app to run on
 EXPOSE 5001
 
-# run the test script before starting
-RUN python test/app_test.py
+# run the test script before starting, commented out for redis
+# RUN python test/app_test.py
 
 # execute the Flask app
 CMD ["python", "app/app.py"]
