@@ -56,7 +56,6 @@ jobs:
             heroku container:release web -a $HEROKU_APP_NAME
 
 workflows:
-  version: 2.1
   build_and_deploy:
     jobs:
       - deploy_prod:

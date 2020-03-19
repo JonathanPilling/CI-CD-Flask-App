@@ -63,7 +63,10 @@ inputs_collections = [
     ]
 
 # Initialize redis cache
-r = redis.Redis(host='localhost', port=6379, db=0)
+# For Local
+# r = redis.Redis(host='localhost', port=6379, db=0)
+# For Heroku
+r = redis.from_url(os.environ.get("REDIS_URL"))
 
 # app
 app = Flask(__name__)
