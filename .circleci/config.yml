@@ -40,7 +40,7 @@ jobs:
   deploy_test:
     machine: true
     environment:
-      HEROKU_APP_NAME: flask-analytics-api
+      HEROKU_APP_NAME: flask-analytics-circleci
     steps:
       - checkout
       - run: 
