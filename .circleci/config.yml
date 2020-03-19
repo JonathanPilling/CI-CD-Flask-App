@@ -37,6 +37,24 @@ jobs:
             .circleci/heroku-setup.sh 
             heroku container:release web -a $HEROKU_APP_NAME
 
+  deploy_test:
+    machine: true
+    environment:
+      HEROKU_APP_NAME: flask-analytics-api
+    steps:
+      - checkout
+      - run: 
+          name: deploy to martech-test-dev
+          command: |
+            docker info
+            docker build -t flask-api .
+            docker login --username=$DOCKER_LOGIN --password=$HEROKU_API_KEY registry.heroku.com
+            docker tag flask-api registry.heroku.com/$HEROKU_APP_NAME/web
+            docker push registry.heroku.com/$HEROKU_APP_NAME/web
+            chmod +x .circleci/heroku-setup.sh
+            .circleci/heroku-setup.sh 
+            heroku container:release web -a $HEROKU_APP_NAME
+
 workflows:
   version: 2.1
   build_and_deploy:
@@ -51,4 +69,9 @@ workflows:
             branches:
               only: 
                 - dev
+      - deploy_test:
+          filters:
+            branches:
+              only:
+                - redisPlay
   

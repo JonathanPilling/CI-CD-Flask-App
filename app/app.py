@@ -72,6 +72,8 @@ app = Flask(__name__)
 @app.route('/', methods=['POST', 'GET'])
 def predict():
     if request.method == "POST":
+        # TODO perform schema check on data
+
         # get data
         data = request.get_json(force=True)
 
@@ -124,7 +126,7 @@ def predict():
         conversion_result = conversion_model.predict_proba(conversion_data_df)[0,1]
         final_prediction = collections_result * conversion_result
 
-        # Before sending output back, do an sql transaction to audit database
+        # TODO Before sending output back, do an sql transaction to audit database
 
         # send back to browser
         output = {'collections_result': collections_result.item(), 'conversion_result': conversion_result.item(), 'final_prediction': final_prediction.item()}
