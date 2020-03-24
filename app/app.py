@@ -1,3 +1,4 @@
+import datetime
 import pandas as pd
 import numpy as np
 from flask import Flask, jsonify, request
@@ -12,11 +13,9 @@ from jsonschema import validate
 import psycopg2
 
 #DATABASE_URL = os.environ['DATABASE_URL']
-
 #conn = psycopg2.connect(DATABASE_URL, sslmode='require')
 
-# load model
-# model = pickle.load(open('model.pkl','rb'))
+# Load in models
 collections_model = pickle.load(open('models/p60_nopaid_random_0211.sav', 'rb')) 
 conversion_model = pickle.load(open('models/conversion_random_122919.sav', 'rb'))
 
@@ -38,9 +37,14 @@ camelCaseDict = {
     'agentTypePGXIntroHotSwap': 'AgentType_PGX Intro Hot Swap',
     'agentTypeOutsourcingTraining': 'AgentType_Outsourcing Training',
     'avgAgeOfCarLoans': 'avg_age_of_car_loans',
+    'avgAgeOfRevolvingAccounts': 'avg_age_of_revolving_accounts',
     'utilizationRatio': 'utilization_ratio',
     'score': 'score',
     'tuctsRank': 'TUCTS_Rank',
+    'amtInstPaidClosed': 'amt_inst_paid_closed',
+    'maxLatePayRev': 'max_latePayRev',
+    'avgAgeOfMortages': 'avg_age_of_mortgages',
+    'previousPaid': 'previous_paid',
 }
 
 ## Static Input lists for machine learning models, order matters
@@ -90,24 +94,38 @@ inputs_collections = [
 # Schema for validating payload
 pgx_schema = { 'type': 'object',
     'properties': {
+        # Retrieved from agent_id in the future
         'conversion180DayAvg': {'type': 'number'},
-        'medHomeValue': {'type': 'number'},
+        'agentTypeOutsourcingTraining': {'type': 'integer', 'minimum': 0, 'maximum': 1},
+        'agentTypePGXHourly': {'type': 'integer', 'minimum': 0, 'maximum': 1},
+        'agentTypePGXInbound': {'type': 'integer', 'minimum': 0, 'maximum': 1},
         'agentTenure': {'type': 'number'},
+        'callgroupHotSwap': {'type': 'integer', 'minimum': 0, 'maximum': 1},
+        'agentTypePGXIntroHotSwap': {'type': 'integer', 'minimum': 0, 'maximum': 1},
+
+        # Lookup from zip code
+        'medHomeValue': {'type': 'number'},     
         'balBankCardCredit': {'type': 'number'},
-        'age': {'type': 'number', 'minimum': 0},
-        'callgroupHotSwap': {'type': 'boolean'},
-        'agentTypePGXHourly': {'type': 'boolean'},
-        'agentTypePGXInbound': {'type': 'boolean'},
-        'motivationPersonalLoan': {'type': 'boolean'},
-        'agentTypePGXIntroHotSwap': {'type': 'boolean'},
-        'agentTypeOutsourcingTraining': {'type': 'boolean'},
-        'avgAgeOfCarLoans': {'type': 'boolean'},
-        'utilizationRatio': {'type': 'boolean'},
+
+        # Retrieved from dyson session/report id in the future
+        'age': {'type': 'number', 'minimum': 0},      
+        'motivationPersonalLoan': {'type': 'integer', 'minimum': 0, 'maximum': 1},      
+        'avgAgeOfCarLoans': {'type': 'number'},
+        'utilizationRatio': {'type': 'integer', 'minimum': 0, 'maximum': 1},
+        'amtInstPaidClosed': {'type': 'number'},
+        'maxLatePayRev': {'type': 'number'},
         'score': {'type': 'number'},
         'tuctsRank': {'type': 'number'},
+        'avgAgeOfRevolvingAccounts': {'type': 'number'},
+        'avgAgeOfMortgages': {'type': 'number'},
+
+        # IT is calculating this value
+        'previousPaid': {'type': 'integer', 'minimum': 0, 'maximum': 1},
+
+        # Actual payload values
         'zip': {'type': 'string', 'minLength': 5, 'maxLength': 5},
         'agentId': {'type': 'number'},
-        'tid': {'type': 'string', 'maxLength': 4}, # Can be 1858, 2356, or 2195
+        'tid': {'type': 'string', 'maxLength': 4}, # Not sure how we want to use this
         'channel': {'type': 'string'}, # Need a max length for this for SQL database/ Possible values are 'Natural Search', Lead Gen, Paid Media, Hot Swap External
         }
 }
@@ -121,6 +139,15 @@ def channelSelect(arg):
         'Hotswap External': 'channel_Hotswap External'
     }
     return channelSwitch.get(arg, 'Invalid Key')
+
+# Method for enabling a particular tid
+def tidSelect(arg):
+    tidSwitch = {
+        '1858': 'ptid_1858',
+        '2356': 'ptid_2356',
+        '2195': 'ptid_2195',
+    }
+    return tidSwitch.get(arg, 'Invalid Key')
 
 # app
 app = Flask(__name__)
@@ -159,10 +186,23 @@ def predict():
                     collections_data[realKey] = val
 
         # Perform month/quarter calculations
+        today = datetime.datetime.today()
+        collections_data['month'] = today.month
+        collections_data['qtr'] = (today.month-1)//3 + 1
 
-        # Enable bits based on channel and tid
-        
-   
+        # Enable bits based on channel
+        if "channel" in data.keys():
+            channel = channelSelect(data['channel'])
+            if channel in inputs_collections:
+                collections_data[channel] = 1
+            if channel in inputs_conversion:
+                conversion_data[channel] = 1
+
+        # Enable bits based on tid
+        if "tid" in data.keys():
+            tid = tidSelect(data['tid'])
+            conversion_data[tid] = 1
+ 
         # convert data into dataframe
         collections_data.update((x, [y]) for x, y in collections_data.items())
         conversion_data.update((x, [y]) for x, y in conversion_data.items()) 
