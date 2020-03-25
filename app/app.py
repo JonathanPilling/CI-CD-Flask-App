@@ -123,7 +123,7 @@ pgx_schema = { 'type': 'object',
         'previousPaid': {'type': 'integer', 'minimum': 0, 'maximum': 1},
 
         # Actual payload values
-        'zip': {'type': 'string', 'minLength': 5, 'maxLength': 5},
+        'zip': {'type': 'string', 'pattern': "^[0-9]{5}$"},
         'agentId': {'type': 'number'},
         'tid': {'type': 'string', 'maxLength': 4}, # Not sure how we want to use this
         'channel': {'type': 'string'}, # Need a max length for this for SQL database/ Possible values are 'Natural Search', Lead Gen, Paid Media, Hot Swap External
