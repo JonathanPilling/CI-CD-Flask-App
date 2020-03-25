@@ -151,9 +151,12 @@ def tidSelect(arg):
 # Write to the audit analytics table in cloud Postgres
 def writeToDb(data, collections_data, conversion_data, bestCollection, bestConversion, bestPrediction, bestProduct):
 
+    conn = None
     try:
         DATABASE_URL = os.environ['DATABASE_URL']
+        print(DATABASE_URL)
         conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        print('we"ve made a connection')
         cursor = conn.cursor()
         cursor.execute('''        
             INSERT INTO analytics_audit (logTime, offerProductId, conversion180DayAvg, agentTenure,
@@ -173,9 +176,11 @@ def writeToDb(data, collections_data, conversion_data, bestCollection, bestConve
                     conversion_data['TUCTS_Rank'], data['zip'], data['agentId'], data['tid'], data['channel'],
                     bestCollection, bestConversion, bestPrediction))
     except:
-        pass
+        print('Unable to connect to the database')
     finally:
-        pass 
+        # Close connection
+        if conn is not None:
+            conn.close() 
 
 
 # app
