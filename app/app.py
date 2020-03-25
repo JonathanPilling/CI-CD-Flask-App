@@ -12,9 +12,6 @@ from jsonschema import validate
 # Database Conn
 import psycopg2
 
-#DATABASE_URL = os.environ['DATABASE_URL']
-#conn = psycopg2.connect(DATABASE_URL, sslmode='require')
-
 # Load in models
 collections_model = pickle.load(open('models/p60_nopaid_random_0211.sav', 'rb')) 
 conversion_model = pickle.load(open('models/conversion_random_122919.sav', 'rb'))
@@ -100,8 +97,10 @@ pgx_schema = { 'type': 'object',
         'agentTypePGXHourly': {'type': 'integer', 'minimum': 0, 'maximum': 1},
         'agentTypePGXInbound': {'type': 'integer', 'minimum': 0, 'maximum': 1},
         'agentTenure': {'type': 'number'},
-        'callgroupHotSwap': {'type': 'integer', 'minimum': 0, 'maximum': 1},
         'agentTypePGXIntroHotSwap': {'type': 'integer', 'minimum': 0, 'maximum': 1},
+
+        # IT will be sending a field called calltype, if that field contains the work "hotswap" then callgroup_hotswap = 1
+        'callgroupHotSwap': {'type': 'integer', 'minimum': 0, 'maximum': 1},
 
         # Lookup from zip code
         'medHomeValue': {'type': 'number'},     
@@ -119,14 +118,14 @@ pgx_schema = { 'type': 'object',
         'avgAgeOfRevolvingAccounts': {'type': 'number'},
         'avgAgeOfMortgages': {'type': 'number'},
 
-        # IT is calculating this value
+        # IT is calculating this value in Offers Engine, we'll need to do the same
         'previousPaid': {'type': 'integer', 'minimum': 0, 'maximum': 1},
 
         # Actual payload values
         'zip': {'type': 'string', 'pattern': "^[0-9]{5}$"},
         'agentId': {'type': 'number'},
         'tid': {'type': 'string', 'maxLength': 4}, # Not sure how we want to use this
-        'channel': {'type': 'string'}, # Need a max length for this for SQL database/ Possible values are 'Natural Search', Lead Gen, Paid Media, Hot Swap External
+        'channel': {'type': 'string'}, # Need a max length for this for SQL database/ Possible values are 'Natural Search', Lead Gen, Paid Media, Hot Swap External?
         }
 }
 
@@ -148,6 +147,36 @@ def tidSelect(arg):
         '2195': 'ptid_2195',
     }
     return tidSwitch.get(arg, 'Invalid Key')
+
+# Write to the audit analytics table in cloud Postgres
+def writeToDb(data, collections_data, conversion_data, bestCollection, bestConversion, bestPrediction, bestProduct):
+
+    try:
+        DATABASE_URL = os.environ['DATABASE_URL']
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        cursor = conn.cursor()
+        cursor.execute('''        
+            INSERT INTO analytics_audit (logTime, offerProductId, conversion180DayAvg, agentTenure,
+            medHomeValue, balBankCardCredit, age, callgroupHotswap, currMonth, qtr,
+            agentTypePGXHourly, agentTypePGXInbound, motivationPersonalLoan, agentTypePGXIntroHotSwap,
+            agentTypeOutsourcingTraining, avgAgeOfCarLoans, utilizationRatio, score, tuctsRank, zip,
+            agentId, tid, channel, collectionsResult, conversionResult, finalResult
+            ) 
+            VALUES ( %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);''', 
+                    (datetime.datetime.now(), bestProduct, conversion_data['conversion_180_day_avg'],
+                    conversion_data['AgentTenure'], conversion_data['med_home_value'], conversion_data['Bal_BankCardCredit'],
+                    collections_data['age'], collections_data['callgroup_hotswap'], collections_data['month'], collections_data['qtr'],
+                    conversion_data['AgentType_PGX Hourly'], conversion_data['AgentType_PGX Inbound'], collections_data['motivation_Personal Loan'],
+                    conversion_data['AgentType_PGX Intro Hot Swap'], conversion_data['AgentType_Outsourcing Training'],
+                    collections_data['avg_age_of_car_loans'], collections_data['utilization_ratio'], conversion_data['score'],
+                    conversion_data['TUCTS_Rank'], data['zip'], data['agentId'], data['tid'], data['channel'],
+                    bestCollection, bestConversion, bestPrediction))
+    except:
+        pass
+    finally:
+        pass 
+
 
 # app
 app = Flask(__name__)
@@ -233,6 +262,7 @@ def predict():
         output = {'collections_result': bestCollection.item(), 'conversion_result': bestConversion.item(), 'final_prediction': bestPrediction.item(), 'OfferProductId': bestProduct}
 
         # write a row to audit db
+        writeToDb(data, collections_data, conversion_data, bestCollection, bestConversion, bestPrediction, bestProduct)
 
         # return data
         return jsonify(output)
