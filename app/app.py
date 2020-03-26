@@ -154,10 +154,9 @@ def writeToDb(data, collections_data, conversion_data, bestCollection, bestConve
     conn = None
     try:
         DATABASE_URL = os.environ['DATABASE_URL']
-        print(DATABASE_URL)
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
-        print('we"ve made a connection')
+        conn = psycopg2.connect(host="localhost", database="184973", user="184973", password="Goldenratio66")
         cursor = conn.cursor()
+        print(conversion_data['conversion_180_day_avg'])
         cursor.execute('''        
             INSERT INTO analytics_audit (logTime, offerProductId, conversion180DayAvg, agentTenure,
             medHomeValue, balBankCardCredit, age, callgroupHotswap, currMonth, qtr,
@@ -166,22 +165,21 @@ def writeToDb(data, collections_data, conversion_data, bestCollection, bestConve
             agentId, tid, channel, collectionsResult, conversionResult, finalResult
             ) 
             VALUES ( %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);''', 
-                    (datetime.datetime.now(), bestProduct, conversion_data['conversion_180_day_avg'],
+                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);''', 
+                    (datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), bestProduct, conversion_data['conversion_180_day_avg'],
                     conversion_data['AgentTenure'], conversion_data['med_home_value'], conversion_data['Bal_BankCardCredit'],
-                    collections_data['age'], collections_data['callgroup_hotswap'], collections_data['month'], collections_data['qtr'],
-                    conversion_data['AgentType_PGX Hourly'], conversion_data['AgentType_PGX Inbound'], collections_data['motivation_Personal Loan'],
-                    conversion_data['AgentType_PGX Intro Hot Swap'], conversion_data['AgentType_Outsourcing Training'],
+                    collections_data['age'], bool(collections_data['callgroup_hotswap']), collections_data['month'], collections_data['qtr'],
+                    bool(conversion_data['AgentType_PGX Hourly']), bool(conversion_data['AgentType_PGX Inbound']), bool(collections_data['motivation_Personal loan']),
+                    bool(conversion_data['AgentType_PGX Intro Hot Swap']), bool(conversion_data['AgentType_Outsourcing Training']),
                     collections_data['avg_age_of_car_loans'], collections_data['utilization_ratio'], conversion_data['score'],
                     conversion_data['TUCTS_Rank'], data['zip'], data['agentId'], data['tid'], data['channel'],
-                    bestCollection, bestConversion, bestPrediction))
-    except:
-        print('Unable to connect to the database')
+                    float(bestCollection), float(bestConversion), float(bestPrediction)))
+    except Exception as e:
+        print('Error: ', repr(e))
     finally:
         # Close connection
         if conn is not None:
             conn.close() 
-
 
 # app
 app = Flask(__name__)
@@ -238,10 +236,8 @@ def predict():
             conversion_data[tid] = 1
  
         # convert data into dataframe
-        collections_data.update((x, [y]) for x, y in collections_data.items())
-        conversion_data.update((x, [y]) for x, y in conversion_data.items()) 
-        collections_data_df = pd.DataFrame.from_dict(collections_data)
-        conversion_data_df = pd.DataFrame.from_dict(conversion_data)
+        collections_data_df = pd.DataFrame(collections_data, index=[0])
+        conversion_data_df = pd.DataFrame(conversion_data, index=[0])
 
         # Iterate through possible product ids
         bestPrediction = 0
@@ -266,6 +262,14 @@ def predict():
         # send back to browser
         output = {'collections_result': bestCollection.item(), 'conversion_result': bestConversion.item(), 'final_prediction': bestPrediction.item(), 'OfferProductId': bestProduct}
 
+        # Hacky way of converting np.nan to null for db insert. If we follow API contract we shouldn't have to deal with this issue
+        for key, val in collections_data.items():
+            if val == np.nan:
+                collections_data[key] = None
+        for key, val in conversion_data.items():
+            if val == np.nan:
+                conversion_data[key] = None
+                
         # write a row to audit db
         writeToDb(data, collections_data, conversion_data, bestCollection, bestConversion, bestPrediction, bestProduct)
 
@@ -275,6 +279,6 @@ def predict():
         return ("<h1>Hi! I'm the Progrexion API (DEV Edition)</h1>")
 
 if __name__ == '__main__':
-    # Bind to the port if defined, otherwise default to 5001
+    # Bind to the port if defined, otherwise default to 5000
     port = int(os.environ.get('PORT', 5000))
     app.run('0.0.0.0', port = port, debug=True)
