@@ -154,9 +154,8 @@ def writeToDb(data, collections_data, conversion_data, bestCollection, bestConve
     conn = None
     try:
         DATABASE_URL = os.environ['DATABASE_URL']
-        conn = psycopg2.connect(host="localhost", database="184973", user="184973", password="Goldenratio66")
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
         cursor = conn.cursor()
-        print(conversion_data['conversion_180_day_avg'])
         cursor.execute('''        
             INSERT INTO analytics_audit (logTime, offerProductId, conversion180DayAvg, agentTenure,
             medHomeValue, balBankCardCredit, age, callgroupHotswap, currMonth, qtr,
@@ -240,10 +239,7 @@ def predict():
         conversion_data_df = pd.DataFrame(conversion_data, index=[0])
 
         # Iterate through possible product ids
-        bestPrediction = 0
-        bestCollection = 0
-        bestConversion = 0
-        bestProduct = -1
+        bestPrediction, bestCollection, bestConversion, bestProduct = 0, 0, 0, -1
 
         for val in productIds:
             collections_data_df.at[0, 'OfferProductID'] = val
@@ -261,16 +257,8 @@ def predict():
 
         # send back to browser
         output = {'collections_result': bestCollection.item(), 'conversion_result': bestConversion.item(), 'final_prediction': bestPrediction.item(), 'OfferProductId': bestProduct}
-
-        # Hacky way of converting np.nan to null for db insert. If we follow API contract we shouldn't have to deal with this issue
-        for key, val in collections_data.items():
-            if val == np.nan:
-                collections_data[key] = None
-        for key, val in conversion_data.items():
-            if val == np.nan:
-                conversion_data[key] = None
                 
-        # write a row to audit db
+        # write a row to audit db, if we're passing in np.nan() values this will not work 
         writeToDb(data, collections_data, conversion_data, bestCollection, bestConversion, bestPrediction, bestProduct)
 
         # return data
